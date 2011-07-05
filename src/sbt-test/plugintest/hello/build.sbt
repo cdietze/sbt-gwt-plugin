@@ -1,0 +1,2 @@
+
+seq(GwtPlugin.gwtSettings :_*)
