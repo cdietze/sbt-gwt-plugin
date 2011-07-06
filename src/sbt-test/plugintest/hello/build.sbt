@@ -1,2 +1,2 @@
 
-seq(GwtPlugin.gwtSettings :_*)
+seq(net.thunderklaus.GwtPlugin.gwtSettings :_*)

@@ -1,3 +1,5 @@
+package net.thunderklaus
+
 import sbt._
 import sbt.Keys._
 import com.github.siasia.WebPlugin._
