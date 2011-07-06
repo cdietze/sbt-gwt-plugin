@@ -11,15 +11,17 @@ object GwtPlugin extends Plugin {
   val gwtModules = TaskKey[Seq[String]]("gwt-modules")
   val gwtTemporaryPath = SettingKey[File]("gwt-temporary-path")
   val gwtCompile = TaskKey[Unit]("gwt-compile", "Runs the GWT compiler")
+  val gwtVersion = SettingKey[String]("gwt-version")
 
   lazy val gwtSettings: Seq[Setting[_]] = webSettings ++ inConfig(Gwt)(Defaults.configSettings) ++ Seq(
     managedClasspath in Gwt <<= (managedClasspath in Compile, update) map ((cp, up) => cp ++ Classpaths.managedJars(Provided, Set("src"), up)),
     autoScalaLibrary := false,
-    libraryDependencies ++= Seq(
-      "com.google.gwt" % "gwt-user" % "2.3.0" % "provided",
-      "com.google.gwt" % "gwt-dev" % "2.3.0" % "provided",
+    gwtVersion := "2.3.0",
+    libraryDependencies <++= gwtVersion(gwtVersion => Seq(
+      "com.google.gwt" % "gwt-user" % gwtVersion % "provided",
+      "com.google.gwt" % "gwt-dev" % gwtVersion % "provided",
       "javax.validation" % "validation-api" % "1.0.0.GA" % "provided" withSources (),
-      "com.google.gwt" % "gwt-servlet" % "2.3.0"),
+      "com.google.gwt" % "gwt-servlet" % gwtVersion)),
     gwtModules <<= (javaSource in Compile) map (javaSource => findModules(javaSource)),
     gwtTemporaryPath <<= (target) { (target) => target / "gwt" },
     gwtCompile <<= (dependencyClasspath in Gwt, javaSource in Compile, gwtModules, gwtTemporaryPath, streams) map
