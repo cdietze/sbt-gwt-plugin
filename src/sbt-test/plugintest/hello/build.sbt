@@ -1,2 +1,4 @@
 
-seq(net.thunderklaus.GwtPlugin.gwtSettings :_*)
+import net.thunderklaus.GwtPlugin._
+
+seq(gwtSettings :_*)
