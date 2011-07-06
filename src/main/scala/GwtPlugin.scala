@@ -15,6 +15,7 @@ object GwtPlugin extends Plugin {
 
   lazy val gwtSettings: Seq[Setting[_]] = webSettings ++ inConfig(Gwt)(Defaults.configSettings) ++ Seq(
     managedClasspath in Gwt <<= (managedClasspath in Compile, update) map ((cp, up) => cp ++ Classpaths.managedJars(Provided, Set("src"), up)),
+    unmanagedClasspath in Gwt <<= (unmanagedClasspath in Compile).identity,
     autoScalaLibrary := false,
     gwtVersion := "2.3.0",
     libraryDependencies <++= gwtVersion(gwtVersion => Seq(
