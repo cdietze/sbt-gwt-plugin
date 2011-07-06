@@ -1,2 +1,4 @@
 > update
 > prepare-webapp
+
+$ exists target/webapp/hello_gwt_sbt/hello_gwt_sbt.nocache.js
