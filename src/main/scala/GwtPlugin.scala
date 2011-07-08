@@ -13,8 +13,10 @@ object GwtPlugin extends Plugin {
   val gwtCompile = TaskKey[Unit]("gwt-compile", "Runs the GWT compiler")
   val gwtVersion = SettingKey[String]("gwt-version")
 
-  lazy val gwtSettings: Seq[Setting[_]] = webSettings ++ inConfig(Gwt)(Defaults.configSettings) ++ Seq(
-    managedClasspath in Gwt <<= (managedClasspath in Compile, update) map ((cp, up) => cp ++ Classpaths.managedJars(Provided, Set("src"), up)),
+  lazy val gwtSettings: Seq[Setting[_]] = webSettings ++ gwtOnlySettings
+
+  lazy val gwtOnlySettings: Seq[Setting[_]] = inConfig(Gwt)(Defaults.configSettings) ++ Seq(
+    managedClasspath in Gwt <<= (managedClasspath in Compile, update) map { (cp, up) => cp ++ Classpaths.managedJars(Provided, Set("src"), up) },
     unmanagedClasspath in Gwt <<= (unmanagedClasspath in Compile).identity,
     autoScalaLibrary := false,
     gwtVersion := "2.3.0",
@@ -23,8 +25,8 @@ object GwtPlugin extends Plugin {
       "com.google.gwt" % "gwt-dev" % gwtVersion % "provided",
       "javax.validation" % "validation-api" % "1.0.0.GA" % "provided" withSources (),
       "com.google.gwt" % "gwt-servlet" % gwtVersion)),
-    gwtModules <<= (javaSource in Compile) map (javaSource => findModules(javaSource)),
-    gwtTemporaryPath <<= (target) { (target) => target / "gwt" },
+    gwtModules <<= (javaSource in Compile) map { javaSource => findGwtModules(javaSource) },
+    gwtTemporaryPath <<= (target) { (target) => target / "gwt-temp" },
     gwtCompile <<= (dependencyClasspath in Gwt, javaSource in Compile, gwtModules, gwtTemporaryPath, streams) map
       { (dependencyClasspath, javaSource, gwtModules, tempPath, s) =>
         {
@@ -38,7 +40,7 @@ object GwtPlugin extends Plugin {
     prepareWebapp <<= prepareWebapp.dependsOn(gwtCompile),
     webappResources <<= (webappResources, gwtTemporaryPath) { (w: PathFinder, g: File) => w +++ PathFinder(g) })
 
-  private def findModules(srcRoot: File): Seq[String] = {
+  private def findGwtModules(srcRoot: File): Seq[String] = {
     import Path.relativeTo
     val files = (srcRoot ** "*.gwt.xml").get
     val relativeStrings = files.flatMap(_ x relativeTo(srcRoot)).map(_._2)
