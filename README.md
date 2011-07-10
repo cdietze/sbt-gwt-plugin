@@ -5,7 +5,7 @@ Add the plugin to your project in `project/plugins/build.sbt`:
 
     resolvers += "GWT plugin repo" at "http://thunderklaus.github.com/maven"
 
-    libraryDependencies += "net.thunderklaus" %% "sbt-gwt-plugin" % "1.0-SNAPSHOT"
+    libraryDependencies += "net.thunderklaus" %% "sbt-gwt-plugin" % "1.0"
 
 Add the GWT settings to your project in `build.sbt`:
 
