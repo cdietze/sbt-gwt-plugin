@@ -10,6 +10,8 @@ resolvers += "Web plugin repo" at "http://siasia.github.com/maven2"
 
 libraryDependencies <+= sbtVersion(v => "com.github.siasia" %% "xsbt-web-plugin" % ("0.1.0-" + v))
 
+seq(ScriptedPlugin.scriptedSettings: _*)
+
 publishMavenStyle := true
 
-seq(ScriptedPlugin.scriptedSettings: _*)
+publishTo := Some(Resolver.file("Local", Path.userHome / "thunderklaus.github.com" / "maven" asFile)(Patterns(true, Resolver.mavenStyleBasePattern)))
