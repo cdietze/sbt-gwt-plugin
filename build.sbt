@@ -4,7 +4,7 @@ organization := "net.thunderklaus"
 
 name := "sbt-gwt-plugin"
 
-version := "1.0"
+version := "1.1-SNAPSHOT"
 
 resolvers += "Web plugin repo" at "http://siasia.github.com/maven2"
 
