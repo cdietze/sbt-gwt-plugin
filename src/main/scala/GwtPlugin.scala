@@ -2,6 +2,7 @@ package net.thunderklaus
 
 import sbt._
 import sbt.Keys._
+import java.io.File
 import com.github.siasia.WebPlugin._
 
 object GwtPlugin extends Plugin {
@@ -31,7 +32,8 @@ object GwtPlugin extends Plugin {
       { (dependencyClasspath, javaSource, gwtModules, tempPath, s) =>
         {
           IO.createDirectory(tempPath)
-          val command = "java -cp " + dependencyClasspath.map(_.data.absolutePath).mkString(";") + ";" + javaSource.absolutePath + " com.google.gwt.dev.Compiler -war " + tempPath.absolutePath + " " + gwtModules.mkString(" ")
+          val cp = dependencyClasspath.map(_.data.absolutePath) :+ javaSource.absolutePath
+          val command = "java -cp " + cp.mkString(File.pathSeparator) + " com.google.gwt.dev.Compiler -war " + tempPath.absolutePath + " " + gwtModules.mkString(" ")
           s.log.info("Compiling " + gwtModules.length + " GWT module" + { if (gwtModules.length == 1) "" else "s" } + ": " + gwtModules.mkString(","))
           s.log.debug("Running GWT compiler command: " + command)
           command !
@@ -44,7 +46,7 @@ object GwtPlugin extends Plugin {
     import Path.relativeTo
     val files = (srcRoot ** "*.gwt.xml").get
     val relativeStrings = files.flatMap(_ x relativeTo(srcRoot)).map(_._2)
-    val modules = relativeStrings.map(_.dropRight(".gwt.xml".length).replaceAll("\\\\", "."))
+    val modules = relativeStrings.map(_.dropRight(".gwt.xml".length).replace(File.separator, "."))
     modules
   }
 }
