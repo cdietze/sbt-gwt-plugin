@@ -76,8 +76,7 @@ object GwtPlugin extends Plugin {
   )
 
   private def mkGwtCommand(cp: Seq[File], clazz: String, warPath: File, args: String) =
-    val command = "java -cp " + cp.mkString(File.pathSeparator) + " " + clazz +
-      " -war " + warPath.absolutePath + " " + args
+    "java -cp " + cp.mkString(File.pathSeparator) + " " + clazz + " -war " + warPath.absolutePath + " " + args
 
   private def findGwtModules(srcRoot: File): Seq[String] = {
     import Path.relativeTo
