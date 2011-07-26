@@ -1,7 +1,6 @@
 
-//resolvers += "Web plugin repo" at "http://siasia.github.com/maven2"
+resolvers += "GWT plugin repo" at "http://thunderklaus.github.com/maven"
 
-//libraryDependencies <+= sbtVersion("com.github.siasia" %% "xsbt-web-plugin" % ("0.1.0-"+ _ ))
-//libraryDependencies <+= sbtVersion(v => "com.github.siasia" %% "xsbt-web-plugin" % ("0.1.0-"+v))
+resolvers += Resolver.file("Local Maven Repository", Path.userHome / "thunderklaus.github.com" / "maven" asFile)(Patterns(true, Resolver.mavenStyleBasePattern))
 
 libraryDependencies += "net.thunderklaus" %% "sbt-gwt-plugin" % "1.1-SNAPSHOT"
