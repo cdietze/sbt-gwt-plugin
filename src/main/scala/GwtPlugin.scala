@@ -75,8 +75,9 @@ object GwtPlugin extends Plugin {
     commands ++= Seq(gwtSetModule)
   )
 
-  private def mkGwtCommand(cp: Seq[File], clazz: String, warPath: File, args: String) =
-    "java -cp " + cp.mkString(File.pathSeparator) + " " + clazz + " -war " + warPath.absolutePath + " " + args
+  private def mkGwtCommand(cp: Seq[String], clazz: String, warPath: File, args: String) =
+    "java -cp " + cp.mkString(File.pathSeparator) + " " + clazz +
+      " -war " + warPath.absolutePath + " " + args
 
   private def findGwtModules(srcRoot: File): Seq[String] = {
     import Path.relativeTo
