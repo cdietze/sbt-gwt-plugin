@@ -8,7 +8,7 @@ version := "1.1-SNAPSHOT"
 
 resolvers += "Web plugin repo" at "http://siasia.github.com/maven2"
 
-libraryDependencies <+= sbtVersion(v => "com.github.siasia" %% "xsbt-web-plugin" % ("0.1.0-" + v))
+libraryDependencies <+= sbtVersion(v => "com.github.siasia" %% "xsbt-web-plugin" % ("0.1.1-" + v))
 
 seq(ScriptedPlugin.scriptedSettings: _*)
 
