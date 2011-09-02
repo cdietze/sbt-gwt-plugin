@@ -43,7 +43,9 @@ object GwtPlugin extends Plugin {
       "com.google.gwt" % "gwt-dev" % gwtVersion % "provided",
       "javax.validation" % "validation-api" % "1.0.0.GA" % "provided" withSources (),
       "com.google.gwt" % "gwt-servlet" % gwtVersion)),
-    gwtModules <<= (javaSource in Compile) map { javaSource => findGwtModules(javaSource) },
+    gwtModules <<= (javaSource in Compile, resourceDirectory in Compile) map {
+      (javaSource, resources) => findGwtModules(javaSource) ++ findGwtModules(resources)
+    },
 
     gwtDevMode <<= (dependencyClasspath in Gwt, javaSource in Compile,
                     gwtModules, temporaryWarPath, streams) map {
