@@ -18,7 +18,7 @@ object GwtPlugin extends Plugin {
   val gwtSetModule = Command.single("gwt-set-module") { (state, arg) =>
     Project.evaluateTask(gwtModules, state) match {
       case Some(Value(mods)) => {
-        gwtModule = mods.find(_.toLowerCase.contains(arg))
+        gwtModule = mods.find(_.toLowerCase.contains(arg.toLowerCase))
         gwtModule match {
           case Some(m) => println("gwt-devmode will run: " + m)
           case None => println("No match for '" + arg + "' in " + mods.mkString(", "))
