@@ -91,8 +91,8 @@ object GwtPlugin extends Plugin {
     commands ++= Seq(gwtSetModule)
   )
 
-  private def mkGwtCommand(cp: Seq[String], javaArgs :List[String], clazz: String, warPath: File,
-                           gwtArgs :List[String], modules: String) =
+  private def mkGwtCommand(cp: Seq[String], javaArgs: List[String], clazz: String, warPath: File,
+                           gwtArgs: List[String], modules: String) =
     (List("java", "-cp", cp.mkString(File.pathSeparator)) ++ javaArgs ++
      List(clazz, "-war", warPath.absolutePath) ++ gwtArgs :+ modules).mkString(" ")
 
