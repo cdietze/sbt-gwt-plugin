@@ -18,7 +18,22 @@ This adds the GWT compilation task, which can be called directly with `gwt-compi
 Development Mode
 ---
 
-Use `gwt-devmode` to run your module in the GWT development mode shel. By default this runs the first module in the `gwtModules` list, but one can use the `gwt-set-module` command to instruct `gwt-devmode` to use the first module containing the substring passed to `gwt-set-module`.
+Use `gwt-devmode` to run your module in the GWT development mode shell. By default this runs the first module in the `gwtModules` list, but one can use the `gwt-set-module` command to instruct `gwt-devmode` to use the first module containing the substring passed to `gwt-set-module`.
+
+Development Mode with Google App Engine
+---
+
+It is possible to run the Google App Engine development server when running the GWT devmode shell. You must simply configure `gaeSdkPath`:
+
+    gaeSdkPath := Some("/path/to/appengine-java-sdk-x.x.x")
+
+If you prefer not to hardcode paths in your SBT build, you can easily extract the path from a shell environment variable like so:
+
+    gaeSdkPath := Option(System.getenv("APPENGINE_SDK_HOME"))
+
+Enter the following in the SBT console prior to invoking `gwt-devmode` to see the exact configuration changes made when running the GWT devmode shell with the Google App Engine dev server:
+
+    set logLevel := Level.Debug
 
 Testing with Jetty
 ---
@@ -32,7 +47,7 @@ You can also test your `gwt-compile`d app with Jetty, by running `jetty-run` fol
 Settings
 ---
 
-The default GWT version is 2.3.0 which can be overridden like this
+The default GWT version is 2.3.0 which can be overridden like this:
 
     gwtVersion := "2.2.0"
 
