@@ -37,7 +37,6 @@ object GwtPlugin extends Plugin {
       (cp, up) => cp ++ Classpaths.managedJars(Provided, Set("src"), up)
     },
     unmanagedClasspath in Gwt <<= (unmanagedClasspath in Compile).identity,
-    autoScalaLibrary := false,
     gwtVersion := "2.3.0",
     gaeSdkPath := None,
     libraryDependencies <++= gwtVersion(gwtVersion => Seq(
