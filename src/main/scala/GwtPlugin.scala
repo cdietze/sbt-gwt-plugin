@@ -48,17 +48,17 @@ object GwtPlugin extends Plugin {
       (javaSource, resources) => findGwtModules(javaSource) ++ findGwtModules(resources)
     },
 
-    gwtDevMode <<= (dependencyClasspath in Gwt, javaSource in Compile,
+    gwtDevMode <<= (dependencyClasspath in Gwt, javaSource in Compile, javaOptions in Gwt,
                     gwtModules, gaeSdkPath, temporaryWarPath, streams) map {
-      (dependencyClasspath, javaSource, gwtModules, gaeSdkPath, warPath, s) => {
+      (dependencyClasspath, javaSource, javaOpts, gwtModules, gaeSdkPath, warPath, s) => {
         def gaeFile (path :String*) = gaeSdkPath.map(_ +: path mkString(File.separator))
         val module = gwtModule.getOrElse(gwtModules.head)
         val cp = dependencyClasspath.map(_.data.absolutePath) ++
           gaeFile("lib", "appengine-tools-api.jar").toList :+ javaSource.absolutePath
-        val javaArgs = gaeFile("lib", "agent", "appengine-agent.jar") match {
+        val javaArgs = javaOpts ++ (gaeFile("lib", "agent", "appengine-agent.jar") match {
           case None => Nil
           case Some(path) => List("-javaagent:" + path)
-        }
+        })
         val gwtArgs = gaeSdkPath match {
           case None => Nil
           case Some(path) => List(
@@ -73,12 +73,12 @@ object GwtPlugin extends Plugin {
     },
     gwtDevMode <<= gwtDevMode.dependsOn(prepareWebapp),
 
-    gwtCompile <<= (dependencyClasspath in Gwt, javaSource in Compile,
+    gwtCompile <<= (dependencyClasspath in Gwt, javaSource in Compile, javaOptions in Gwt,
                     gwtModules, temporaryWarPath, streams) map {
-      (dependencyClasspath, javaSource, gwtModules, warPath, s) => {
+      (dependencyClasspath, javaSource, javaOpts, gwtModules, warPath, s) => {
         val cp = dependencyClasspath.map(_.data.absolutePath) :+ javaSource.absolutePath
         val command = mkGwtCommand(
-          cp, Nil, "com.google.gwt.dev.Compiler", warPath, Nil, gwtModules.mkString(" "))
+          cp, javaOpts, "com.google.gwt.dev.Compiler", warPath, Nil, gwtModules.mkString(" "))
         s.log.info("Compiling GWT modules: " + gwtModules.mkString(","))
         s.log.debug("Running GWT compiler command: " + command)
         command !
@@ -90,8 +90,8 @@ object GwtPlugin extends Plugin {
     commands ++= Seq(gwtSetModule)
   )
 
-  private def mkGwtCommand(cp: Seq[String], javaArgs: List[String], clazz: String, warPath: File,
-                           gwtArgs: List[String], modules: String) =
+  private def mkGwtCommand(cp: Seq[String], javaArgs: Seq[String], clazz: String, warPath: File,
+                           gwtArgs: Seq[String], modules: String) =
     (List("java", "-cp", cp.mkString(File.pathSeparator)) ++ javaArgs ++
      List(clazz, "-war", warPath.absolutePath) ++ gwtArgs :+ modules).mkString(" ")
 
