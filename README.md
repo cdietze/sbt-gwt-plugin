@@ -59,6 +59,10 @@ By default, all GWT modules in the source directory are compiled. You can specif
 
     gwtModules := List("net.thunderklaus.hello_gwt_sbt.Hello_gwt_sbt")
 
+Additional arguments can be passed to the JVM used to run GWT devmode and the GWT compiler:
+
+    javaOptions in Gwt += "-mx512M"
+
 See also
 ---
 
