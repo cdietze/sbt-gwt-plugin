@@ -4,6 +4,7 @@ import sbt._
 import sbt.Keys._
 import java.io.File
 import com.github.siasia.WebPlugin._
+import com.github.siasia.PluginKeys._
 
 object GwtPlugin extends Plugin {
 
@@ -13,6 +14,7 @@ object GwtPlugin extends Plugin {
   val gwtCompile = TaskKey[Unit]("gwt-compile", "Runs the GWT compiler")
   val gwtDevMode = TaskKey[Unit]("gwt-devmode", "Runs the GWT devmode shell")
   val gwtVersion = SettingKey[String]("gwt-version")
+  val gwtTemporaryPath = SettingKey[File]("gwt-temporary-path")
   val gaeSdkPath = SettingKey[Option[String]]("gae-sdk-path")
 
   var gwtModule: Option[String] = None
@@ -37,6 +39,7 @@ object GwtPlugin extends Plugin {
       (cp, up) => cp ++ Classpaths.managedJars(Provided, Set("src"), up)
     },
     unmanagedClasspath in Gwt <<= (unmanagedClasspath in Compile).identity,
+    gwtTemporaryPath <<= (target) { (target) => target / "gwt" },
     gwtVersion := "2.3.0",
     gaeSdkPath := None,
     libraryDependencies <++= gwtVersion(gwtVersion => Seq(
@@ -49,7 +52,7 @@ object GwtPlugin extends Plugin {
     },
 
     gwtDevMode <<= (dependencyClasspath in Gwt, javaSource in Compile, javaOptions in Gwt,
-                    gwtModules, gaeSdkPath, temporaryWarPath, streams) map {
+                    gwtModules, gaeSdkPath, gwtTemporaryPath, streams) map {
       (dependencyClasspath, javaSource, javaOpts, gwtModules, gaeSdkPath, warPath, s) => {
         def gaeFile (path :String*) = gaeSdkPath.map(_ +: path mkString(File.separator))
         val module = gwtModule.getOrElse(gwtModules.head)
@@ -71,10 +74,9 @@ object GwtPlugin extends Plugin {
         command !
       }
     },
-    gwtDevMode <<= gwtDevMode.dependsOn(prepareWebapp),
 
     gwtCompile <<= (dependencyClasspath in Gwt, javaSource in Compile, javaOptions in Gwt,
-                    gwtModules, temporaryWarPath, streams) map {
+                    gwtModules, gwtTemporaryPath, streams) map {
       (dependencyClasspath, javaSource, javaOpts, gwtModules, warPath, s) => {
         val cp = dependencyClasspath.map(_.data.absolutePath) :+ javaSource.absolutePath
         val command = mkGwtCommand(
@@ -84,8 +86,9 @@ object GwtPlugin extends Plugin {
         command !
       }
     },
-    gwtCompile <<= gwtCompile.dependsOn(prepareWebapp),
-    packageWar <<= packageWar.dependsOn(gwtCompile),
+    webappResources in Compile <+= (gwtTemporaryPath) { (t: File) => t },
+
+    packageWar in Compile <<= (packageWar in Compile).dependsOn(gwtCompile),
 
     commands ++= Seq(gwtSetModule)
   )

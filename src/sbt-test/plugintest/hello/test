@@ -1,4 +1,4 @@
 > update
-> prepare-webapp
+> package-war
 
-$ exists target/webapp/hello_gwt_sbt/hello_gwt_sbt.nocache.js
+$ exists target/gwt/hello_gwt_sbt/hello_gwt_sbt.nocache.js
