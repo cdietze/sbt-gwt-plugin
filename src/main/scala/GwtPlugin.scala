@@ -15,6 +15,7 @@ object GwtPlugin extends Plugin {
   val gwtDevMode = TaskKey[Unit]("gwt-devmode", "Runs the GWT devmode shell")
   val gwtVersion = SettingKey[String]("gwt-version")
   val gwtTemporaryPath = SettingKey[File]("gwt-temporary-path")
+  val gwtWebappPath = SettingKey[File]("gwt-webapp-path")
   val gaeSdkPath = SettingKey[Option[String]]("gae-sdk-path")
 
   var gwtModule: Option[String] = None
@@ -40,6 +41,7 @@ object GwtPlugin extends Plugin {
     },
     unmanagedClasspath in Gwt <<= (unmanagedClasspath in Compile).identity,
     gwtTemporaryPath <<= (target) { (target) => target / "gwt" },
+    gwtWebappPath <<= (target) { (target) => target / "webapp" },
     gwtVersion := "2.3.0",
     gaeSdkPath := None,
     libraryDependencies <++= gwtVersion(gwtVersion => Seq(
@@ -51,12 +53,12 @@ object GwtPlugin extends Plugin {
       (javaSource, resources) => findGwtModules(javaSource) ++ findGwtModules(resources)
     },
 
-    gwtDevMode <<= (dependencyClasspath in Gwt, javaSource in Compile, javaOptions in Gwt,
-                    gwtModules, gaeSdkPath, gwtTemporaryPath, streams) map {
-      (dependencyClasspath, javaSource, javaOpts, gwtModules, gaeSdkPath, warPath, s) => {
+    gwtDevMode <<= (dependencyClasspath in Gwt, thisProject in Gwt,  state in Gwt, javaSource in Compile, javaOptions in Gwt,
+                    gwtModules, gaeSdkPath, gwtWebappPath, streams) map {
+      (dependencyClasspath, thisProject, pstate, javaSource, javaOpts, gwtModules, gaeSdkPath, warPath, s) => {
         def gaeFile (path :String*) = gaeSdkPath.map(_ +: path mkString(File.separator))
         val module = gwtModule.getOrElse(gwtModules.head)
-        val cp = dependencyClasspath.map(_.data.absolutePath) ++
+        val cp = dependencyClasspath.map(_.data.absolutePath) ++ getDepSources(thisProject.dependencies, pstate) ++
           gaeFile("lib", "appengine-tools-api.jar").toList :+ javaSource.absolutePath
         val javaArgs = javaOpts ++ (gaeFile("lib", "agent", "appengine-agent.jar") match {
           case None => Nil
@@ -75,10 +77,10 @@ object GwtPlugin extends Plugin {
       }
     },
 
-    gwtCompile <<= (dependencyClasspath in Gwt, javaSource in Compile, javaOptions in Gwt,
+    gwtCompile <<= (dependencyClasspath in Gwt, thisProject in Gwt,  state in Gwt, javaSource in Compile, javaOptions in Gwt,
                     gwtModules, gwtTemporaryPath, streams) map {
-      (dependencyClasspath, javaSource, javaOpts, gwtModules, warPath, s) => {
-        val cp = dependencyClasspath.map(_.data.absolutePath) :+ javaSource.absolutePath
+      (dependencyClasspath, thisProject, pstate, javaSource, javaOpts, gwtModules, warPath, s) => {
+        val cp = (dependencyClasspath.map(_.data.absolutePath) :+ javaSource.absolutePath)  ++ getDepSources(thisProject.dependencies, pstate)
         val command = mkGwtCommand(
           cp, javaOpts, "com.google.gwt.dev.Compiler", warPath, Nil, gwtModules.mkString(" "))
         s.log.info("Compiling GWT modules: " + gwtModules.mkString(","))
@@ -92,6 +94,20 @@ object GwtPlugin extends Plugin {
 
     commands ++= Seq(gwtSetModule)
   )
+  
+  def getDepSources(deps : Seq[ClasspathDep[ProjectRef]], state : State) : Set[String] = {
+    var sources = Set.empty[String]
+    val structure = Project.extract(state).structure
+    def get[A] = setting[A](structure)_
+    deps.foreach{
+    dep=>
+      sources +=  (get(dep.project, Keys.sourceDirectory, Compile).get.toString + "/java")
+      sources ++= getDepSources(Project.getProject(dep.project, structure).get.dependencies, state)
+    }
+    sources
+  }
+
+  def setting[T](structure: Load.BuildStructure)(ref: ProjectRef, key: SettingKey[T], configuration: Configuration): Option[T] = key in (ref, configuration) get structure.data
 
   private def mkGwtCommand(cp: Seq[String], javaArgs: Seq[String], clazz: String, warPath: File,
                            gwtArgs: Seq[String], modules: String) =
