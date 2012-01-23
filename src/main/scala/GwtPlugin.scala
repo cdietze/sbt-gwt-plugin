@@ -15,6 +15,7 @@ object GwtPlugin extends Plugin {
   val gwtDevMode = TaskKey[Unit]("gwt-devmode", "Runs the GWT devmode shell")
   val gwtVersion = SettingKey[String]("gwt-version")
   val gwtTemporaryPath = SettingKey[File]("gwt-temporary-path")
+  val gwtWebappPath = SettingKey[File]("gwt-webapp-path")
   val gaeSdkPath = SettingKey[Option[String]]("gae-sdk-path")
 
   var gwtModule: Option[String] = None
@@ -40,6 +41,7 @@ object GwtPlugin extends Plugin {
     },
     unmanagedClasspath in Gwt <<= (unmanagedClasspath in Compile).identity,
     gwtTemporaryPath <<= (target) { (target) => target / "gwt" },
+    gwtWebappPath <<= (target) { (target) => target / "webapp" },
     gwtVersion := "2.3.0",
     gaeSdkPath := None,
     libraryDependencies <++= gwtVersion(gwtVersion => Seq(
@@ -52,7 +54,7 @@ object GwtPlugin extends Plugin {
     },
 
     gwtDevMode <<= (dependencyClasspath in Gwt, thisProject in Gwt,  state in Gwt, javaSource in Compile, javaOptions in Gwt,
-                    gwtModules, gaeSdkPath, gwtTemporaryPath, streams) map {
+                    gwtModules, gaeSdkPath, gwtWebappPath, streams) map {
       (dependencyClasspath, thisProject, pstate, javaSource, javaOpts, gwtModules, gaeSdkPath, warPath, s) => {
         def gaeFile (path :String*) = gaeSdkPath.map(_ +: path mkString(File.separator))
         val module = gwtModule.getOrElse(gwtModules.head)
