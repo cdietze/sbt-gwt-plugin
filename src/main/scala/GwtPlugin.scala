@@ -93,14 +93,14 @@ object GwtPlugin extends Plugin {
     commands ++= Seq(gwtSetModule)
   )
   
-  def getDepSources(deps : Seq[ClasspathDep[ProjectRef]], state : State) : Seq[String] = {
-    var sources = Seq("")
+  def getDepSources(deps : Seq[ClasspathDep[ProjectRef]], state : State) : Set[String] = {
+    var sources = Set.empty[String]
     val structure = Project.extract(state).structure
     def get[A] = setting[A](structure)_
     deps.foreach{
     dep=>
-      sources = sources :+ (get(dep.project, Keys.sourceDirectory, Compile).get.toString + "/java")
-      sources = sources  ++ getDepSources(Project.getProject(dep.project, structure).get.dependencies, state)
+      sources +=  (get(dep.project, Keys.sourceDirectory, Compile).get.toString + "/java")
+      sources ++= getDepSources(Project.getProject(dep.project, structure).get.dependencies, state)
     }
     sources
   }
