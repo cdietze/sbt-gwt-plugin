@@ -1,5 +1,3 @@
-This is a fork that adds multiproject support
-
 Usage
 ====
 
