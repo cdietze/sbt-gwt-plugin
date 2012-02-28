@@ -77,10 +77,13 @@ object GwtPlugin extends Plugin {
       }
     },
 
-    gwtCompile <<= (dependencyClasspath in Gwt, thisProject in Gwt,  state in Gwt, javaSource in Compile, javaOptions in Gwt,
+    gwtCompile <<= (classDirectory in Compile, dependencyClasspath in Gwt, thisProject in Gwt, state in Gwt, javaSource in Compile, javaOptions in Gwt,
                     gwtModules, gwtTemporaryPath, streams) map {
-      (dependencyClasspath, thisProject, pstate, javaSource, javaOpts, gwtModules, warPath, s) => {
-        val cp = (dependencyClasspath.map(_.data.absolutePath) :+ javaSource.absolutePath)  ++ getDepSources(thisProject.dependencies, pstate)
+      (classDirectory, dependencyClasspath, thisProject, pstate, javaSource, javaOpts, gwtModules, warPath, s) => {
+        val cp = Seq(classDirectory.absolutePath) ++ 
+                 dependencyClasspath.map(_.data.absolutePath) ++
+                 Seq(javaSource.absolutePath) ++
+                 getDepSources(thisProject.dependencies, pstate)
         val command = mkGwtCommand(
           cp, javaOpts, "com.google.gwt.dev.Compiler", warPath, Nil, gwtModules.mkString(" "))
         s.log.info("Compiling GWT modules: " + gwtModules.mkString(","))
