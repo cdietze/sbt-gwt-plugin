@@ -84,11 +84,16 @@ object GwtPlugin extends Plugin {
                  dependencyClasspath.map(_.data.absolutePath) ++
                  Seq(javaSource.absolutePath) ++
                  getDepSources(thisProject.dependencies, pstate)
-        val command = mkGwtCommand(
-          cp, javaOpts, "com.google.gwt.dev.Compiler", warPath, Nil, gwtModules.mkString(" "))
-        s.log.info("Compiling GWT modules: " + gwtModules.mkString(","))
-        s.log.debug("Running GWT compiler command: " + command)
-        command !
+
+        if(gwtSrcIsUpdated(javaSource, warPath)) {
+          val command = mkGwtCommand(
+            cp, javaOpts, "com.google.gwt.dev.Compiler", warPath, Nil, gwtModules.mkString(" "))
+          s.log.info("Compiling GWT modules: " + gwtModules.mkString(","))
+          s.log.debug("Running GWT compiler command: " + command)
+          command !
+        }
+        else
+          s.log.info("GWT modules are up-to date")
       }
     },
     webappResources in Compile <+= (gwtTemporaryPath) { (t: File) => t },
@@ -97,6 +102,9 @@ object GwtPlugin extends Plugin {
 
     commands ++= Seq(gwtSetModule)
   )
+
+
+
   
   def getDepSources(deps : Seq[ClasspathDep[ProjectRef]], state : State) : Set[String] = {
     var sources = Set.empty[String]
@@ -123,4 +131,19 @@ object GwtPlugin extends Plugin {
     val relativeStrings = files.flatMap(_ x relativeTo(srcRoot)).map(_._2)
     relativeStrings.map(_.dropRight(".gwt.xml".length).replace(File.separator, "."))
   }
+
+  private def gwtSrcIsUpdated(srcRoot:File, warPath:File) : Boolean = {
+    val outputFiles : Seq[File] = (warPath ** "*.nocache.js").get
+    if(outputFiles.isEmpty)
+      true
+    else {
+      val lastCompiled = outputFiles.map(_.lastModified).max
+
+      val moduleFolders = (srcRoot ** "*.gwt.xml").get.map(m => m.getParentFile)
+      val gwtSrcs = for(m <- moduleFolders; f <- (m ** "*").get) yield f
+      val updatedSrcs = gwtSrcs.filter(lastCompiled < _.lastModified)
+      !updatedSrcs.isEmpty
+    }
+  }
+
 }
