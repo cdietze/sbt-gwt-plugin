@@ -11,6 +11,7 @@ object GwtPlugin extends Plugin {
   lazy val Gwt = config("gwt") extend (Compile)
 
   val gwtModules = TaskKey[Seq[String]]("gwt-modules")
+  val gwtModulePaths = TaskKey[Seq[File]]("gwt-module-path")
   val gwtCompile = TaskKey[Unit]("gwt-compile", "Runs the GWT compiler")
   val gwtDevMode = TaskKey[Unit]("gwt-devmode", "Runs the GWT devmode shell")
   val gwtVersion = SettingKey[String]("gwt-version")
@@ -52,7 +53,9 @@ object GwtPlugin extends Plugin {
     gwtModules <<= (javaSource in Compile, resourceDirectory in Compile) map {
       (javaSource, resources) => findGwtModules(javaSource) ++ findGwtModules(resources)
     },
-
+    gwtModulePaths <<= (javaSource in Compile, resourceDirectory in Compile) map {
+      (javaSource, resources) => findGwtModulePaths(javaSource) ++ findGwtModulePaths(resources)
+    },
     gwtDevMode <<= (dependencyClasspath in Gwt, thisProject in Gwt,  state in Gwt, javaSource in Compile, javaOptions in Gwt,
                     gwtModules, gaeSdkPath, gwtWebappPath, streams) map {
       (dependencyClasspath, thisProject, pstate, javaSource, javaOpts, gwtModules, gaeSdkPath, warPath, s) => {
@@ -78,14 +81,15 @@ object GwtPlugin extends Plugin {
     },
 
     gwtCompile <<= (classDirectory in Compile, dependencyClasspath in Gwt, thisProject in Gwt, state in Gwt, javaSource in Compile, javaOptions in Gwt,
-                    gwtModules, gwtTemporaryPath, streams) map {
-      (classDirectory, dependencyClasspath, thisProject, pstate, javaSource, javaOpts, gwtModules, warPath, s) => {
+                    gwtModules, gwtModulePaths, gwtTemporaryPath, streams) map {
+      (classDirectory, dependencyClasspath, thisProject, pstate, javaSource, javaOpts, gwtModules, gwtModulePaths, warPath, s) => {
         val cp = Seq(classDirectory.absolutePath) ++ 
                  dependencyClasspath.map(_.data.absolutePath) ++
                  Seq(javaSource.absolutePath) ++
                  getDepSources(thisProject.dependencies, pstate)
 
-        if(gwtSrcIsUpdated(javaSource, warPath)) {
+        s.log.info("Checking GWT module updates: " + gwtModulePaths.mkString(", "))
+        if(gwtSrcIsUpdated(gwtModulePaths, warPath, s.log)) {
           val command = mkGwtCommand(
             cp, javaOpts, "com.google.gwt.dev.Compiler", warPath, Nil, gwtModules.mkString(" "))
           s.log.info("Compiling GWT modules: " + gwtModules.mkString(","))
@@ -93,7 +97,7 @@ object GwtPlugin extends Plugin {
           command !
         }
         else
-          s.log.info("GWT modules are up-to date")
+          s.log.info("GWT modules are up to date")
       }
     },
     webappResources in Compile <+= (gwtTemporaryPath) { (t: File) => t },
@@ -132,17 +136,20 @@ object GwtPlugin extends Plugin {
     relativeStrings.map(_.dropRight(".gwt.xml".length).replace(File.separator, "."))
   }
 
-  private def gwtSrcIsUpdated(srcRoot:File, warPath:File) : Boolean = {
+  private def findGwtModulePaths(srcRoot: File): Seq[File] = {
+    (srcRoot ** "*.gwt.xml").get.map(m => m.getParentFile)
+  }
+
+  private def gwtSrcIsUpdated(modulePaths:Seq[File], warPath:File, logger:Logger) : Boolean = {
     val outputFiles : Seq[File] = (warPath ** "*.nocache.js").get
-    if(outputFiles.isEmpty)
+    if(outputFiles.isEmpty) {
+      logger.info("No GWT output is found in " + warPath)
       true
+    }
     else {
       val lastCompiled = outputFiles.map(_.lastModified).max
-
-      val moduleFolders = (srcRoot ** "*.gwt.xml").get.map(m => m.getParentFile)
-      val gwtSrcs = for(m <- moduleFolders; f <- (m ** "*").get) yield f
-      val updatedSrcs = gwtSrcs.filter(lastCompiled < _.lastModified)
-      !updatedSrcs.isEmpty
+      val gwtSrcs = for(m <- modulePaths; f <- (m ** "*").get) yield f
+      gwtSrcs.find(lastCompiled < _.lastModified).isDefined
     }
   }
 
