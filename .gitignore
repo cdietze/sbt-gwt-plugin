@@ -1,3 +1,10 @@
-/target
-/.project
-/.classpath
+target
+.project
+.classpath
+
+*~
+
+# For IntelliJ project files
+.idea
+.idea_modules
+
