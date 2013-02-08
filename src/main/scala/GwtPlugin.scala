@@ -12,6 +12,7 @@ object GwtPlugin extends Plugin {
 
   val gwtModules = TaskKey[Seq[String]]("gwt-modules")
   val gwtCompile = TaskKey[Unit]("gwt-compile", "Runs the GWT compiler")
+  val gwtForceCompile = TaskKey[Boolean]("gwt-force-compile", "Always recompile gwt modules")
   val gwtDevMode = TaskKey[Unit]("gwt-devmode", "Runs the GWT devmode shell")
   val gwtVersion = SettingKey[String]("gwt-version")
   val gwtTemporaryPath = SettingKey[File]("gwt-temporary-path")
@@ -43,6 +44,7 @@ object GwtPlugin extends Plugin {
     gwtTemporaryPath <<= (target) { (target) => target / "gwt" },
     gwtWebappPath <<= (target) { (target) => target / "webapp" },
     gwtVersion := "2.3.0",
+    gwtForceCompile := false,
     gaeSdkPath := None,
     libraryDependencies <++= gwtVersion(gwtVersion => Seq(
       "com.google.gwt" % "gwt-user" % gwtVersion % "provided",
@@ -52,7 +54,6 @@ object GwtPlugin extends Plugin {
     gwtModules <<= (javaSource in Compile, resourceDirectory in Compile) map {
       (javaSource, resources) => findGwtModules(javaSource) ++ findGwtModules(resources)
     },
-
     gwtDevMode <<= (dependencyClasspath in Gwt, thisProject in Gwt,  state in Gwt, javaSource in Compile, javaOptions in Gwt,
                     gwtModules, gaeSdkPath, gwtWebappPath, streams) map {
       (dependencyClasspath, thisProject, pstate, javaSource, javaOpts, gwtModules, gaeSdkPath, warPath, s) => {
@@ -78,17 +79,38 @@ object GwtPlugin extends Plugin {
     },
 
     gwtCompile <<= (classDirectory in Compile, dependencyClasspath in Gwt, thisProject in Gwt, state in Gwt, javaSource in Compile, javaOptions in Gwt,
-                    gwtModules, gwtTemporaryPath, streams) map {
-      (classDirectory, dependencyClasspath, thisProject, pstate, javaSource, javaOpts, gwtModules, warPath, s) => {
-        val cp = Seq(classDirectory.absolutePath) ++ 
+                    gwtModules, gwtTemporaryPath, streams, gwtForceCompile) map {
+      (classDirectory, dependencyClasspath, thisProject, pstate, javaSource, javaOpts, gwtModules, warPath, s, force) => {
+
+        val srcDirs = Seq(javaSource.absolutePath) ++ getDepSources(thisProject.dependencies, pstate)
+        val cp = Seq(classDirectory.absolutePath) ++
                  dependencyClasspath.map(_.data.absolutePath) ++
-                 Seq(javaSource.absolutePath) ++
-                 getDepSources(thisProject.dependencies, pstate)
-        val command = mkGwtCommand(
-          cp, javaOpts, "com.google.gwt.dev.Compiler", warPath, Nil, gwtModules.mkString(" "))
-        s.log.info("Compiling GWT modules: " + gwtModules.mkString(","))
-        s.log.debug("Running GWT compiler command: " + command)
-        command !
+                 srcDirs
+
+        val needToCompile : Boolean = {
+          s.log.info("Checking GWT module updates: " + gwtModules.mkString(", "))
+          val gwtFiles : Seq[File] = (warPath ** "*.nocache.js").get
+          if(gwtFiles.isEmpty) {
+            s.log.info("No GWT output is found in " + warPath)
+            true
+          }
+          else {
+            val lastCompiled = gwtFiles.map(_.lastModified).max
+            val moduleDirs = for(d <- srcDirs; m <- (new File(d) ** "*.gwt.xml").get) yield { m.getParentFile }
+            val gwtSrcs = for(m <- moduleDirs; f <- (m ** "*").get) yield f
+            gwtSrcs.find(lastCompiled < _.lastModified).isDefined
+          }
+        }
+
+        if(force || needToCompile) {
+          val command = mkGwtCommand(
+            cp, javaOpts, "com.google.gwt.dev.Compiler", warPath, Nil, gwtModules.mkString(" "))
+          s.log.info("Compiling GWT modules: " + gwtModules.mkString(","))
+          s.log.debug("Running GWT compiler command: " + command)
+          command !
+        }
+        else
+          s.log.info("GWT modules are up to date")
       }
     },
     webappResources in Compile <+= (gwtTemporaryPath) { (t: File) => t },
@@ -97,6 +119,9 @@ object GwtPlugin extends Plugin {
 
     commands ++= Seq(gwtSetModule)
   )
+
+
+
   
   def getDepSources(deps : Seq[ClasspathDep[ProjectRef]], state : State) : Set[String] = {
     var sources = Set.empty[String]
@@ -123,4 +148,7 @@ object GwtPlugin extends Plugin {
     val relativeStrings = files.flatMap(_ x relativeTo(srcRoot)).map(_._2)
     relativeStrings.map(_.dropRight(".gwt.xml".length).replace(File.separator, "."))
   }
+
+
+
 }
