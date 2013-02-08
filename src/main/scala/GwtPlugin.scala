@@ -12,6 +12,7 @@ object GwtPlugin extends Plugin {
 
   val gwtModules = TaskKey[Seq[String]]("gwt-modules")
   val gwtCompile = TaskKey[Unit]("gwt-compile", "Runs the GWT compiler")
+  val gwtForceCompile = TaskKey[Boolean]("gwt-force-compile", "Always recompile gwt modules")
   val gwtDevMode = TaskKey[Unit]("gwt-devmode", "Runs the GWT devmode shell")
   val gwtVersion = SettingKey[String]("gwt-version")
   val gwtTemporaryPath = SettingKey[File]("gwt-temporary-path")
@@ -43,6 +44,7 @@ object GwtPlugin extends Plugin {
     gwtTemporaryPath <<= (target) { (target) => target / "gwt" },
     gwtWebappPath <<= (target) { (target) => target / "webapp" },
     gwtVersion := "2.3.0",
+    gwtForceCompile := false,
     gaeSdkPath := None,
     libraryDependencies <++= gwtVersion(gwtVersion => Seq(
       "com.google.gwt" % "gwt-user" % gwtVersion % "provided",
@@ -77,8 +79,8 @@ object GwtPlugin extends Plugin {
     },
 
     gwtCompile <<= (classDirectory in Compile, dependencyClasspath in Gwt, thisProject in Gwt, state in Gwt, javaSource in Compile, javaOptions in Gwt,
-                    gwtModules, gwtTemporaryPath, streams) map {
-      (classDirectory, dependencyClasspath, thisProject, pstate, javaSource, javaOpts, gwtModules, warPath, s) => {
+                    gwtModules, gwtTemporaryPath, streams, gwtForceCompile) map {
+      (classDirectory, dependencyClasspath, thisProject, pstate, javaSource, javaOpts, gwtModules, warPath, s, force) => {
 
         val srcDirs = Seq(javaSource.absolutePath) ++ getDepSources(thisProject.dependencies, pstate)
         val cp = Seq(classDirectory.absolutePath) ++
@@ -100,7 +102,7 @@ object GwtPlugin extends Plugin {
           }
         }
 
-        if(needToCompile) {
+        if(force || needToCompile) {
           val command = mkGwtCommand(
             cp, javaOpts, "com.google.gwt.dev.Compiler", warPath, Nil, gwtModules.mkString(" "))
           s.log.info("Compiling GWT modules: " + gwtModules.mkString(","))
