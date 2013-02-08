@@ -11,7 +11,6 @@ object GwtPlugin extends Plugin {
   lazy val Gwt = config("gwt") extend (Compile)
 
   val gwtModules = TaskKey[Seq[String]]("gwt-modules")
-  val gwtModulePaths = TaskKey[Seq[File]]("gwt-module-path")
   val gwtCompile = TaskKey[Unit]("gwt-compile", "Runs the GWT compiler")
   val gwtDevMode = TaskKey[Unit]("gwt-devmode", "Runs the GWT devmode shell")
   val gwtVersion = SettingKey[String]("gwt-version")
@@ -53,9 +52,6 @@ object GwtPlugin extends Plugin {
     gwtModules <<= (javaSource in Compile, resourceDirectory in Compile) map {
       (javaSource, resources) => findGwtModules(javaSource) ++ findGwtModules(resources)
     },
-    gwtModulePaths <<= (javaSource in Compile, resourceDirectory in Compile) map {
-      (javaSource, resources) => findGwtModulePaths(javaSource) ++ findGwtModulePaths(resources)
-    },
     gwtDevMode <<= (dependencyClasspath in Gwt, thisProject in Gwt,  state in Gwt, javaSource in Compile, javaOptions in Gwt,
                     gwtModules, gaeSdkPath, gwtWebappPath, streams) map {
       (dependencyClasspath, thisProject, pstate, javaSource, javaOpts, gwtModules, gaeSdkPath, warPath, s) => {
@@ -81,15 +77,30 @@ object GwtPlugin extends Plugin {
     },
 
     gwtCompile <<= (classDirectory in Compile, dependencyClasspath in Gwt, thisProject in Gwt, state in Gwt, javaSource in Compile, javaOptions in Gwt,
-                    gwtModules, gwtModulePaths, gwtTemporaryPath, streams) map {
-      (classDirectory, dependencyClasspath, thisProject, pstate, javaSource, javaOpts, gwtModules, gwtModulePaths, warPath, s) => {
-        val cp = Seq(classDirectory.absolutePath) ++ 
-                 dependencyClasspath.map(_.data.absolutePath) ++
-                 Seq(javaSource.absolutePath) ++
-                 getDepSources(thisProject.dependencies, pstate)
+                    gwtModules, gwtTemporaryPath, streams) map {
+      (classDirectory, dependencyClasspath, thisProject, pstate, javaSource, javaOpts, gwtModules, warPath, s) => {
 
-        s.log.info("Checking GWT module updates: " + gwtModulePaths.mkString(", "))
-        if(gwtSrcIsUpdated(gwtModulePaths, warPath, s.log)) {
+        val srcDirs = Seq(javaSource.absolutePath) ++ getDepSources(thisProject.dependencies, pstate)
+        val cp = Seq(classDirectory.absolutePath) ++
+                 dependencyClasspath.map(_.data.absolutePath) ++
+                 srcDirs
+
+        val needToCompile : Boolean = {
+          s.log.info("Checking GWT module updates: " + gwtModules.mkString(", "))
+          val gwtFiles : Seq[File] = (warPath ** "*.nocache.js").get
+          if(gwtFiles.isEmpty) {
+            s.log.info("No GWT output is found in " + warPath)
+            true
+          }
+          else {
+            val lastCompiled = gwtFiles.map(_.lastModified).max
+            val moduleDirs = for(d <- srcDirs; m <- (new File(d) ** "*.gwt.xml").get) yield { m.getParentFile }
+            val gwtSrcs = for(m <- moduleDirs; f <- (m ** "*").get) yield f
+            gwtSrcs.find(lastCompiled < _.lastModified).isDefined
+          }
+        }
+
+        if(needToCompile) {
           val command = mkGwtCommand(
             cp, javaOpts, "com.google.gwt.dev.Compiler", warPath, Nil, gwtModules.mkString(" "))
           s.log.info("Compiling GWT modules: " + gwtModules.mkString(","))
@@ -136,21 +147,6 @@ object GwtPlugin extends Plugin {
     relativeStrings.map(_.dropRight(".gwt.xml".length).replace(File.separator, "."))
   }
 
-  private def findGwtModulePaths(srcRoot: File): Seq[File] = {
-    (srcRoot ** "*.gwt.xml").get.map(m => m.getParentFile)
-  }
 
-  private def gwtSrcIsUpdated(modulePaths:Seq[File], warPath:File, logger:Logger) : Boolean = {
-    val outputFiles : Seq[File] = (warPath ** "*.nocache.js").get
-    if(outputFiles.isEmpty) {
-      logger.info("No GWT output is found in " + warPath)
-      true
-    }
-    else {
-      val lastCompiled = outputFiles.map(_.lastModified).max
-      val gwtSrcs = for(m <- modulePaths; f <- (m ** "*").get) yield f
-      gwtSrcs.find(lastCompiled < _.lastModified).isDefined
-    }
-  }
 
 }
