@@ -3,8 +3,8 @@ package net.thunderklaus
 import sbt._
 import sbt.Keys._
 import java.io.File
-import com.github.siasia.WebPlugin._
-import com.github.siasia.PluginKeys._
+import com.earldouglas.xsbtwebplugin.WebPlugin._
+import com.earldouglas.xsbtwebplugin.PluginKeys._
 
 object GwtPlugin extends Plugin {
 

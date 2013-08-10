@@ -64,7 +64,7 @@ Additional arguments can be passed to the JVM used to run GWT devmode and the GW
 See also
 ---
 
-The GWT settings include the web settings from the project <https://github.com/siasia/xsbt-web-plugin>. So, all tasks from that plugin are also available. Have a look at the documentation there.
+The GWT settings include the web settings from the project <https://github.com/JamesEarlDouglas/xsbt-web-plugin>. So, all tasks from that plugin are also available. Have a look at the documentation there.
 
 License
 ---
