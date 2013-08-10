@@ -40,7 +40,7 @@ object GwtPlugin extends Plugin {
     managedClasspath in Gwt <<= (managedClasspath in Compile, update) map {
       (cp, up) => cp ++ Classpaths.managedJars(Provided, Set("src"), up)
     },
-    unmanagedClasspath in Gwt <<= (unmanagedClasspath in Compile).identity,
+    unmanagedClasspath in Gwt <<= (unmanagedClasspath in Compile),
     gwtTemporaryPath <<= (target) { (target) => target / "gwt" },
     gwtWebappPath <<= (target) { (target) => target / "webapp" },
     gwtVersion := "2.3.0",
