@@ -3,9 +3,12 @@ Usage
 
 Add the plugin to your project in `project/plugins.sbt`:
 
-    resolvers += "GWT plugin repo" at "http://thunderklaus.github.com/maven"
-
-    addSbtPlugin("net.thunderklaus" % "sbt-gwt-plugin" % "1.1-SNAPSHOT")
+    resolvers += Resolver.url(
+      "bintray-cdietze-sbt-plugin-releases",
+        url("http://dl.bintray.com/cdietze/sbt-plugins"))(
+            Resolver.ivyStylePatterns)
+    
+    addSbtPlugin("net.thunderklaus" % "sbt-gwt-plugin" % "1.1-105a30073000a6c09d19c1745c49dc58799e68f8")
 
 Add the GWT settings to your project in `build.sbt`:
 
