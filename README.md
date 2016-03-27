@@ -1,3 +1,5 @@
+**Looking for maintainer: I am no longer working on this project. If anyone's interested in taking over let me know and we can add a reference to the new project here.**
+
 Usage
 ====
 
